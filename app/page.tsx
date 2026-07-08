@@ -107,12 +107,13 @@ export default function Overview() {
   const trendData  = stats ? Object.entries(stats.trend).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date: date.slice(5), count })) : []
 
   const navItems = [
-    { id: 'overview',  icon: '◈', label: 'Overview'   },
-    { id: 'problem',   icon: '!', label: 'Problem'     },
-    { id: 'features',  icon: '⊞', label: 'How It Works'},
-    { id: 'stack',     icon: '◎', label: 'Tech Stack'  },
-    { id: 'pipeline',  icon: '↗', label: 'Pipeline'    },
-    { id: 'metrics',   icon: '▦', label: 'Live Traction'},
+    { id: 'overview',  icon: '◈', label: 'Overview'    },
+    { id: 'problem',   icon: '!', label: 'Problem'      },
+    { id: 'features',  icon: '⊞', label: 'How It Works' },
+    { id: 'stack',     icon: '◎', label: 'Tech Stack'   },
+    { id: 'pipeline',  icon: '↗', label: 'Pipeline'     },
+    { id: 'grades',    icon: '◉', label: 'Build Plan'   },
+    { id: 'metrics',   icon: '▦', label: 'Live Traction' },
   ]
 
   return (
@@ -456,6 +457,113 @@ export default function Overview() {
               {['title', 'company', 'source', 'url', 'score (1–10)', 'reasoning', 'seniority', 'salary_range',
                 'cover_letter', 'status', 'applied_at', 'created_at', 'scored_by', 'cheap_score'].map(f => (
                 <div key={f} className="bg-card border border-border rounded px-3 py-2 font-mono text-[10px] text-muted">{f}</div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ════ BUILD PLAN ════ */}
+        {section === 'grades' && (
+          <div>
+            <div className="mb-8">
+              <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Build Plan</div>
+              <h1 className="font-serif text-4xl font-light text-ink mb-3">Honest grades. Clear path to A.</h1>
+              <p className="font-mono text-xs text-muted max-w-xl leading-relaxed">
+                Where Job Pal stands today and exactly what it takes to close each gap. Overall: <span className="text-ink">B (79/100)</span>.
+                The AI core is the strongest part. SaaS readiness is the biggest remaining work.
+              </p>
+            </div>
+
+            <SectionLabel>Current grades</SectionLabel>
+            <div className="bg-card border border-border rounded-xl overflow-hidden mb-10">
+              {[
+                { area: 'Core AI scoring',        grade: 'A-', color: 'text-accent',    note: 'Claude Sonnet + resume context + skill-first prompt + cover letters. The most differentiated part of the product.' },
+                { area: 'UX',                     grade: 'B+', color: 'text-green-400', note: 'Clean UI, status tracking, salary display, skills widget. Cover letter output quality strong.' },
+                { area: 'Stability',              grade: 'B+', color: 'text-green-400', note: '~25 bugs fixed. 3 low-severity issues remaining. No data loss events. Auth session recovery solid.' },
+                { area: 'Data quality',           grade: 'B+', color: 'text-green-400', note: 'Descriptions enriched before scoring, salary persisting, posted_at real dates from LinkedIn.' },
+                { area: 'Events',                 grade: 'B',  color: 'text-blue-400',  note: '70+ events tracked, relevance scoring across 18 domains, past event cleanup. Meetup thin outside major cities.' },
+                { area: 'Scraper coverage',       grade: 'B',  color: 'text-blue-400',  note: '5 sources working. LinkedIn is 80% of volume — single point of failure. Missing Indeed, Greenhouse, Lever.' },
+                { area: 'Multi-user isolation',   grade: 'B',  color: 'text-blue-400',  note: 'Scoped IDs, auth, session persistence live. RLS enabled via SQL. Needs real multi-user load testing.' },
+                { area: 'Learning/personalization', grade: 'B-', color: 'text-blue-400', note: 'Working and protected from bad signals. Needs apply/skip volume to become meaningful (thin data currently).' },
+                { area: 'Non-tech user support',  grade: 'C+', color: 'text-orange-400',note: 'Architecture supports any profession. Setup UX not tested with real non-tech users yet.' },
+                { area: 'SaaS readiness',         grade: 'C',  color: 'text-orange-400',note: 'Auth live. No Stripe, no rate limiting, no usage caps, no user-facing error handling on Supabase outages.' },
+              ].map(({ area, grade, color, note }) => (
+                <div key={area} className="flex gap-4 items-start p-4 border-b border-border last:border-0 hover:bg-white/[0.02] transition-colors">
+                  <div className={`font-mono text-lg font-bold w-8 shrink-0 ${color}`}>{grade}</div>
+                  <div className="flex-1">
+                    <div className="font-mono text-[11px] text-ink mb-0.5">{area}</div>
+                    <div className="font-mono text-[10px] text-muted leading-relaxed">{note}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <SectionLabel>Roadmap to A across the board</SectionLabel>
+            <div className="space-y-3 mb-10">
+              {[
+                {
+                  phase: 'Phase 1 — SaaS foundation (2–3 weeks)',
+                  color: 'accent',
+                  items: [
+                    ['Stripe integration', 'Billing page, usage metering per scrape run, free tier (100 jobs/mo), paid tier ($12/mo, unlimited). Webhook for subscription status.'],
+                    ['Rate limiting', 'Cap scrape runs per user per day (free: 1, paid: 5). Enforce in Streamlit session state + Supabase row count check.'],
+                    ['Error handling', 'Catch Supabase connection failures gracefully. Show user-friendly messages, not stack traces. Log errors to Supabase error_log table.'],
+                    ['Automated daily scraping', 'Cron job (GitHub Actions or Render) to run scrape_all() for all active users daily at 7am. Send digest email with new top matches.'],
+                  ],
+                },
+                {
+                  phase: 'Phase 2 — Scraper resilience (1–2 weeks)',
+                  color: 'green',
+                  items: [
+                    ['Add Indeed', 'Largest job board by volume. Requires HTML scraping (no public API). Adds ~2x coverage.'],
+                    ['Add Greenhouse/Lever', 'ATS boards where companies post directly. Higher quality, lower volume. Important for senior roles.'],
+                    ['LinkedIn fallback', 'If LinkedIn HTML structure changes (it does), fall back to Bing Jobs or SerpAPI. Prevents full pipeline outage from one scraper break.'],
+                    ['Scraper health dashboard', 'Track success rate per source per run. Alert (email or Slack) if a source returns 0 results — catches breaks before users notice.'],
+                  ],
+                },
+                {
+                  phase: 'Phase 3 — User growth (ongoing)',
+                  color: 'blue',
+                  items: [
+                    ['Non-tech user beta', 'Recruit 5 non-tech users (nurses, lawyers, marketers). Run setup flow with them. Fix every friction point before paid launch.'],
+                    ['Mobile UX', 'Streamlit renders on mobile but isn\'t optimized. Add mobile-specific CSS tweaks for the review queue — users will check jobs on their phone.'],
+                    ['Apply/skip data flywheel', 'The personalization engine needs data. Encourage users to rate every job (even quick ones). Add "not relevant" reason codes to improve signal quality.'],
+                    ['Weekly digest email', 'Sunday night email: top 5 new matches this week, events to check out, application status updates. Keeps users engaged between scrape runs.'],
+                  ],
+                },
+              ].map(({ phase, color, items }) => (
+                <div key={phase} className="bg-card border border-border rounded-xl p-5">
+                  <div className={`font-mono text-[10px] tracking-widest uppercase mb-4 text-${color}`}>{phase}</div>
+                  <div className="space-y-3">
+                    {items.map(([title, desc]) => (
+                      <div key={title} className="flex gap-3">
+                        <span className={`font-mono text-[10px] text-${color} mt-0.5 shrink-0`}>→</span>
+                        <div>
+                          <span className="font-mono text-[11px] text-ink">{title}: </span>
+                          <span className="font-mono text-[11px] text-muted">{desc}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <SectionLabel>What an A looks like</SectionLabel>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                ['Paying users', 'First 10 paying customers ($12/mo). Proves the value prop is real, not just a personal tool.'],
+                ['Source diversity', '5+ sources, none >40% of volume. LinkedIn parity with at least 2 backup scrapers.'],
+                ['Daily automation', 'Zero manual triggers. Scrape + score + digest runs every day without user action.'],
+                ['Non-tech NPS', '3 non-tech users complete full flow (setup → scrape → apply) with no help from the builder.'],
+              ].map(([title, desc]) => (
+                <div key={title} className="bg-card border border-border rounded-xl p-4 flex gap-3 items-start">
+                  <span className="text-accent font-mono text-base shrink-0">✓</span>
+                  <div>
+                    <div className="font-mono text-[11px] text-ink mb-0.5">{title}</div>
+                    <div className="font-mono text-[10px] text-muted leading-relaxed">{desc}</div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
