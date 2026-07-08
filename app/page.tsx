@@ -100,6 +100,7 @@ export default function Overview() {
   const [stats, setStats]         = useState<Stats>(null)
   const [plan, setPlan]           = useState<BuildPlan | null>(null)
   const [section, setSection]     = useState('overview')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [scoreSource, setScoreSource] = useState('all')
   const [scoreModel,  setScoreModel]  = useState('all')
 
@@ -132,52 +133,56 @@ export default function Overview() {
   return (
     <div className="flex min-h-screen">
 
-      {/* ── Sidebar — hidden on mobile, icon-only on tablet, full on desktop ── */}
-      <aside className="hidden md:flex md:w-14 lg:w-52 shrink-0 bg-surface border-r border-border flex-col py-6 md:px-2 lg:px-4">
-        <div className="mb-8 md:px-1 lg:px-2 overflow-hidden">
-          <img src="/logo.svg" alt="techturi" className="h-5 w-auto mb-3 opacity-90 hidden lg:block" />
-          <div className="font-serif text-xl text-ink leading-tight hidden lg:block">Job Pal</div>
-          <div className="font-mono text-[10px] text-muted mt-0.5 hidden lg:block">AI Job Search · v1.0</div>
-          <div className="font-mono text-[10px] text-accent lg:hidden text-center">JP</div>
+      {/* ── Sidebar — hidden on mobile, collapsible on md+ ── */}
+      <aside className={`hidden md:flex shrink-0 bg-surface border-r border-border flex-col py-4 transition-all duration-200 ${sidebarOpen ? 'w-48 px-3' : 'w-12 px-2'}`}>
+
+        {/* Toggle button */}
+        <button onClick={() => setSidebarOpen(o => !o)}
+          className="flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:text-ink hover:bg-card transition-colors mb-4 self-end"
+          title={sidebarOpen ? 'Collapse' : 'Expand'}>
+          <span className="font-mono text-sm">{sidebarOpen ? '←' : '→'}</span>
+        </button>
+
+        {/* Logo — only when open */}
+        {sidebarOpen && (
+          <div className="mb-6 px-1">
+            <img src="/logo.svg" alt="techturi" className="h-5 w-auto mb-2 opacity-90" />
+            <div className="font-mono text-[10px] text-muted">AI Job Search · v1.0</div>
+          </div>
+        )}
+
+        {/* Nav items */}
+        <div className="flex flex-col gap-0.5 flex-1">
+          {navItems.map(n => (
+            <button key={n.id}
+              onClick={() => { setSection(n.id); setSidebarOpen(false) }}
+              className={`flex items-center gap-2.5 px-2 py-2 rounded-lg font-mono text-xs transition-colors ${sidebarOpen ? 'justify-start' : 'justify-center'} ${
+                section === n.id ? 'bg-accent/10 text-accent' : 'text-muted hover:text-ink hover:bg-card'
+              }`}
+              title={n.label}>
+              <span className="text-sm shrink-0">{n.icon}</span>
+              {sidebarOpen && <span className="truncate">{n.label}</span>}
+            </button>
+          ))}
         </div>
 
-        <span className="font-mono text-[9px] text-muted tracking-widest uppercase md:px-1 lg:px-2 mb-2 hidden lg:block">Navigation</span>
-        {navItems.map(n => (
-          <button key={n.id} onClick={() => setSection(n.id)}
-            className={`flex items-center md:justify-center lg:justify-start gap-2 md:px-2 lg:px-3 py-2 rounded-lg font-mono text-xs text-left transition-colors ${
-              section === n.id ? 'bg-accent/10 text-accent' : 'text-muted hover:text-ink hover:bg-card'
-            }`}
-            title={n.label}>
-            <span className="text-sm">{n.icon}</span>
-            <span className="hidden lg:inline">{n.label}</span>
-          </button>
-        ))}
-
-        <div className="mt-4 border-t border-border pt-4">
-          <span className="font-mono text-[9px] text-muted tracking-widest uppercase md:px-1 lg:px-2 mb-2 block hidden lg:block">Links</span>
+        {/* Links + status */}
+        <div className="border-t border-border pt-3 mt-3 flex flex-col gap-0.5">
           <a href="https://jobpal.streamlit.app" target="_blank" rel="noreferrer"
-            className="flex items-center md:justify-center lg:justify-start gap-2 md:px-2 lg:px-3 py-2 rounded-lg text-muted hover:text-ink hover:bg-card font-mono text-xs transition-colors"
+            className={`flex items-center gap-2.5 px-2 py-2 rounded-lg text-muted hover:text-ink hover:bg-card font-mono text-xs transition-colors ${sidebarOpen ? '' : 'justify-center'}`}
             title="Open App">
-            <span>↗</span><span className="hidden lg:inline"> Open App</span>
+            <span>↗</span>{sidebarOpen && <span>Open App</span>}
           </a>
           <a href="https://github.com/tegapeters/job-bot" target="_blank" rel="noreferrer"
-            className="flex items-center md:justify-center lg:justify-start gap-2 md:px-2 lg:px-3 py-2 rounded-lg text-muted hover:text-ink hover:bg-card font-mono text-xs transition-colors"
+            className={`flex items-center gap-2.5 px-2 py-2 rounded-lg text-muted hover:text-ink hover:bg-card font-mono text-xs transition-colors ${sidebarOpen ? '' : 'justify-center'}`}
             title="GitHub">
-            <span>⌥</span><span className="hidden lg:inline"> GitHub</span>
+            <span>⌥</span>{sidebarOpen && <span>GitHub</span>}
           </a>
-        </div>
-
-        <div className="mt-auto pt-4 border-t border-border md:px-1 lg:px-2">
-          {stats ? (
-            <>
-              <div className="hidden lg:block font-mono text-[9px] text-muted tracking-widest uppercase">Live data</div>
-              <div className="flex items-center md:justify-center lg:justify-start gap-1.5 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" />
-                <span className="font-mono text-[10px] text-accent hidden lg:inline">Connected · {stats.total} jobs</span>
-              </div>
-            </>
-          ) : (
-            <div className="w-1.5 h-1.5 rounded-full bg-muted mx-auto" />
+          {stats && (
+            <div className={`flex items-center gap-1.5 px-2 py-2 ${sidebarOpen ? '' : 'justify-center'}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" />
+              {sidebarOpen && <span className="font-mono text-[10px] text-accent">{stats.total} jobs</span>}
+            </div>
           )}
         </div>
       </aside>
