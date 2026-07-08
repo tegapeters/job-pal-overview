@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 
-export const supabase = createClient(url, key)
+export const supabase = url && key ? createClient(url, key) : null
 
 export interface JobRow {
   id: string
@@ -17,6 +17,7 @@ export interface JobRow {
 }
 
 export async function getStats() {
+  if (!supabase) return null
   const { data, error } = await supabase
     .from('job_applications')
     .select('source, status, score, salary_range, created_at')
