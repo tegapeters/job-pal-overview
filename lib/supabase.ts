@@ -39,14 +39,26 @@ function buildScoreBuckets(rows: RawRow[]) {
 
 export async function getStats() {
   if (!supabase) return null
-  const { data, error } = await supabase
+
+  // Try with scored_by; fall back if PostgREST schema cache hasn't caught up yet
+  let rows: RawRow[]
+  const res = await supabase
     .from('job_applications')
     .select('source, status, score, salary_range, created_at, scored_by')
     .order('created_at', { ascending: false })
 
-  if (error || !data) return null
-
-  const rows = data as RawRow[]
+  if (res.error?.message?.includes('scored_by')) {
+    const fallback = await supabase
+      .from('job_applications')
+      .select('source, status, score, salary_range, created_at')
+      .order('created_at', { ascending: false })
+    if (fallback.error || !fallback.data) return null
+    rows = fallback.data as RawRow[]
+  } else if (res.error || !res.data) {
+    return null
+  } else {
+    rows = res.data as RawRow[]
+  }
 
   const total      = rows.length
   const queue      = rows.filter(r => r.status === 'new' && (r.score ?? 0) >= 7).length
