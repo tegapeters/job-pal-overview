@@ -211,7 +211,7 @@ export default function Overview() {
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-3">Job Pal — Product Overview</div>
               <h1 className="font-serif text-3xl md:text-5xl font-light text-ink leading-tight mb-4">
                 AI that finds, scores, and<br/>
-                <em className="text-accent">applies</em> to jobs for you.
+                <em className="text-accent">writes</em> your applications.
               </h1>
               <p className="font-mono text-xs text-muted max-w-2xl leading-relaxed mb-6">
                 Job Pal is a production AI job search pipeline. It scrapes 5+ job boards daily, scores
