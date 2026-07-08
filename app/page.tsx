@@ -8,7 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   LineChart, Line,
 } from 'recharts'
-import { getStats } from '@/lib/supabase'
+import { getStats, buildScoreBuckets } from '@/lib/supabase'
 
 /* ── Colour palette ─────────────────────────────────────── */
 const ACCENT   = '#D4FF3A'
@@ -88,21 +88,31 @@ type Stats = Awaited<ReturnType<typeof getStats>>
 
 /* ── Page ────────────────────────────────────────────────── */
 export default function Overview() {
-  const [stats, setStats]   = useState<Stats>(null)
+  const [stats, setStats]     = useState<Stats>(null)
   const [section, setSection] = useState('overview')
+  const [scoreSource, setScoreSource] = useState('all')
+  const [scoreModel,  setScoreModel]  = useState('all')
 
   useEffect(() => { getStats().then(setStats) }, [])
 
-  const scoreData  = stats ? Object.entries(stats.scoreBuckets).map(([name, value]) => ({ name, value })) : []
+  const filteredBuckets = stats ? (() => {
+    let rows = stats.rows
+    if (scoreSource !== 'all') rows = rows.filter(r => (r.source || 'unknown') === scoreSource)
+    if (scoreModel  !== 'all') rows = rows.filter(r => r.scored_by === scoreModel)
+    return buildScoreBuckets(rows)
+  })() : {}
+
+  const scoreData  = Object.entries(filteredBuckets).map(([name, value]) => ({ name, value }))
   const sourceData = stats ? Object.entries(stats.sourceMap).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value })) : []
   const trendData  = stats ? Object.entries(stats.trend).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date: date.slice(5), count })) : []
 
   const navItems = [
-    { id: 'overview',  icon: '◈', label: 'Overview'  },
-    { id: 'features',  icon: '⊞', label: 'Features'  },
-    { id: 'stack',     icon: '◎', label: 'Tech Stack' },
-    { id: 'pipeline',  icon: '↗', label: 'Pipeline'   },
-    { id: 'metrics',   icon: '▦', label: 'Live Data'  },
+    { id: 'overview',  icon: '◈', label: 'Overview'   },
+    { id: 'problem',   icon: '!', label: 'Problem'     },
+    { id: 'features',  icon: '⊞', label: 'How It Works'},
+    { id: 'stack',     icon: '◎', label: 'Tech Stack'  },
+    { id: 'pipeline',  icon: '↗', label: 'Pipeline'    },
+    { id: 'metrics',   icon: '▦', label: 'Live Traction'},
   ]
 
   return (
@@ -129,7 +139,7 @@ export default function Overview() {
         ))}
 
         <div className="mt-4 border-t border-border pt-4">
-          <span className="font-mono text-[9px] text-muted tracking-widest uppercase px-2 mb-2 block">Launch</span>
+          <span className="font-mono text-[9px] text-muted tracking-widest uppercase px-2 mb-2 block">Links</span>
           <a href="https://jobpal.streamlit.app" target="_blank" rel="noreferrer"
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted hover:text-ink hover:bg-card font-mono text-xs transition-colors">
             <span>↗</span> Open App
@@ -161,47 +171,83 @@ export default function Overview() {
         {/* ════ OVERVIEW ════ */}
         {section === 'overview' && (
           <div>
-            <div className="mb-8">
-              <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Project Overview</div>
-              <h1 className="font-serif text-4xl font-light text-ink leading-tight mb-3">
-                Your AI <em className="text-accent">job search</em> engine.
+            {/* Hero */}
+            <div className="mb-10">
+              <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-3">Job Pal — Product Overview</div>
+              <h1 className="font-serif text-5xl font-light text-ink leading-tight mb-4">
+                AI that finds, scores, and<br/>
+                <em className="text-accent">applies</em> to jobs for you.
               </h1>
-              <p className="font-mono text-xs text-muted max-w-xl leading-relaxed">
-                Job Pal is a full-stack AI job search pipeline. It scrapes 5+ job boards,
-                scores every listing against your resume using Claude, generates tailored
-                cover letters for strong matches, surfaces local networking events, and
-                learns your preferences over time.
+              <p className="font-mono text-xs text-muted max-w-2xl leading-relaxed mb-6">
+                Job Pal is a production AI job search pipeline. It scrapes 5+ job boards daily, scores
+                every listing against your resume using Claude AI, writes tailored cover letters for your
+                best matches, surfaces local networking events, and learns your preferences over time — all
+                in one automated system.
               </p>
+              <div className="flex gap-3 flex-wrap">
+                <a href="https://jobpal.streamlit.app" target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-2 bg-accent text-bg font-mono text-xs px-4 py-2 rounded-lg hover:bg-accent/90 transition-colors">
+                  Try the app ↗
+                </a>
+                <button onClick={() => setSection('metrics')}
+                  className="inline-flex items-center gap-2 border border-border text-muted font-mono text-xs px-4 py-2 rounded-lg hover:text-ink hover:border-ink transition-colors">
+                  View live traction →
+                </button>
+              </div>
             </div>
 
-            <SectionLabel>What it does</SectionLabel>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-10">
+            {/* Live snapshot */}
+            {stats && (
+              <div className="mb-10">
+                <SectionLabel>Live traction — pulled from production database</SectionLabel>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <MetricCard label="Jobs tracked"    value={stats.total}    accent />
+                  <MetricCard label="In review queue" value={stats.queue}    sub="scored 7+ by Claude" />
+                  <MetricCard label="Applied"          value={stats.applied}  sub="tracked applications" />
+                  <MetricCard label="With salary data" value={stats.withSalary} sub={`${Math.round(stats.withSalary / Math.max(stats.total, 1) * 100)}% of listings`} />
+                </div>
+              </div>
+            )}
+
+            {/* Value props */}
+            <SectionLabel>Why it exists</SectionLabel>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
               {[
-                ['Scrapes', 'Pulls jobs from LinkedIn, RemoteOK, Remotive, Jobicy, and WWR. Enriches LinkedIn listings with full descriptions and real posted dates.'],
-                ['Scores',  'Claude Sonnet scores every job 1–10 against your resume. Skill-first prompt, seniority as a nudge not a gate. Cover letters generated for 8+ scores.'],
-                ['Learns',  'Tracks apply/skip signals to personalise ranking. Penalises companies you\'ve rejected. Protects target role keywords from becoming negative signals.'],
-                ['Events',  'Scrapes Meetup, Luma, and Eventbrite for local tech networking events. Scores relevance against your resume and tracks interested/attending status.'],
-                ['Multi-user', 'Full Supabase Auth. Each user gets isolated data via scoped ID hashing and row-level security. Setup page saves resume and target roles per account.'],
-                ['CI',      'GitHub Actions runs 5 health checks on every push: syntax, scraper routing for 5 user types, EXCLUDE_KEYWORDS drift, skill extraction, and config leaks.'],
-              ].map(([title, desc]) => (
-                <div key={title} className="bg-card border border-border rounded-xl p-5">
-                  <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">{title}</div>
-                  <div className="font-mono text-[11px] text-muted leading-relaxed">{desc}</div>
+                {
+                  label: 'The problem',
+                  body: 'Job searching is a full-time job. Candidates spend 5–10 hours a week manually sifting through listings, writing cover letters, and tracking applications. Most tools just aggregate listings — they don\'t filter, score, or write for you.',
+                  color: 'text-muted',
+                },
+                {
+                  label: 'The solution',
+                  body: 'Job Pal runs the entire pipeline autonomously. Scrape → score → cover letter → track. You open the app to a ranked, curated queue of your best matches — with cover letters already written — and decide apply or skip.',
+                  color: 'text-ink',
+                },
+                {
+                  label: 'The edge',
+                  body: 'Two-pass AI scoring cuts API costs 60%. Personalization engine learns from every apply/skip. Multi-source enrichment finds salary data and real post dates that job boards hide. Works for any profession.',
+                  color: 'text-muted',
+                },
+              ].map(({ label, body, color }) => (
+                <div key={label} className="bg-card border border-border rounded-xl p-5">
+                  <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-3">{label}</div>
+                  <div className={`font-mono text-[11px] leading-relaxed ${color}`}>{body}</div>
                 </div>
               ))}
             </div>
 
-            <SectionLabel>Status</SectionLabel>
+            {/* Status grid */}
+            <SectionLabel>Build status</SectionLabel>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: 'App',         status: 'Live',        color: 'accent' as const },
-                { label: 'Auth',        status: 'Live',        color: 'accent' as const },
-                { label: 'CI',          status: 'Passing',     color: 'green'  as const },
-                { label: 'Stripe',      status: 'Backlog',     color: 'default' as const },
-                { label: 'Daily Cron',  status: 'Backlog',     color: 'default' as const },
-                { label: 'Daily Digest',status: 'Backlog',     color: 'default' as const },
-                { label: 'Multi-user',  status: 'Beta',        color: 'blue'   as const },
-                { label: 'Weekly Scan', status: 'Scheduled',   color: 'green'  as const },
+                { label: 'App (Streamlit)',  status: 'Live',        color: 'accent' as const },
+                { label: 'Multi-user Auth',  status: 'Live',        color: 'accent' as const },
+                { label: 'CI / 5 checks',    status: 'Passing',     color: 'green'  as const },
+                { label: 'MCP integration',  status: 'Live',        color: 'accent' as const },
+                { label: 'Weekly scan bot',  status: 'Scheduled',   color: 'green'  as const },
+                { label: 'Multi-profession', status: 'Beta',        color: 'blue'   as const },
+                { label: 'Stripe / billing', status: 'Backlog',     color: 'default' as const },
+                { label: 'Daily digest',     status: 'Backlog',     color: 'default' as const },
               ].map(({ label, status, color }) => (
                 <div key={label} className="bg-card border border-border rounded-xl p-4 flex items-center justify-between">
                   <span className="font-mono text-[11px] text-muted">{label}</span>
@@ -212,55 +258,95 @@ export default function Overview() {
           </div>
         )}
 
-        {/* ════ FEATURES ════ */}
+        {/* ════ PROBLEM ════ */}
+        {section === 'problem' && (
+          <div>
+            <div className="mb-8">
+              <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">The Problem</div>
+              <h1 className="font-serif text-4xl font-light text-ink mb-3">Job searching is broken.</h1>
+              <p className="font-mono text-xs text-muted max-w-xl leading-relaxed">
+                Job boards surface thousands of listings. Candidates have no way to filter by actual fit,
+                no time to research every company, and no tool that writes for them. The result: spray-and-pray
+                applications with zero personalization — which employers ignore.
+              </p>
+            </div>
+
+            <SectionLabel>The friction points</SectionLabel>
+            <div className="space-y-3 mb-10">
+              {[
+                ['5–10 hrs/week', 'Average time a serious job seeker spends manually searching, filtering, and applying. That\'s a second job on top of their current one.'],
+                ['Cover letters', 'Expected on most senior roles. Each one takes 20–45 minutes to write well. Most candidates reuse a generic template — and hiring managers can tell.'],
+                ['Tracking', 'Candidates use spreadsheets to track applications. No status updates, no reminders, no signal on what\'s working or what to avoid.'],
+                ['Bad signals', 'Most ATS tools rank candidates by keyword density, not by actual job fit. Candidates have no visibility into how they score before applying.'],
+                ['Fragmented sources', 'The best jobs are spread across LinkedIn, company sites, niche boards, and aggregators. No single tool pulls and ranks them all.'],
+              ].map(([title, desc]) => (
+                <div key={title} className="flex gap-4 bg-card border border-border rounded-xl p-5">
+                  <div className="font-mono text-[10px] text-accent w-28 shrink-0 pt-0.5 leading-relaxed">{title}</div>
+                  <div className="font-mono text-[11px] text-muted leading-relaxed">{desc}</div>
+                </div>
+              ))}
+            </div>
+
+            <SectionLabel>The opportunity</SectionLabel>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                ['$28B', 'Size of the global online recruitment market (2023). Dominated by aggregators that sell attention, not outcomes.'],
+                ['200M+', 'Active job seekers globally at any given time. Professionals changing roles, new graduates, displaced workers — all underserved.'],
+                ['AI timing', 'LLMs now produce cover letter quality that matches strong human writers. The scoring problem — does this job fit me? — is exactly what Claude is built for.'],
+                ['Moat', 'The personalization engine learns from each user\'s apply/skip signals. The longer you use it, the better it gets — and the data is yours, not LinkedIn\'s.'],
+              ].map(([title, desc]) => (
+                <div key={title} className="bg-card border border-border rounded-xl p-5">
+                  <div className="font-serif text-2xl text-accent mb-2">{title}</div>
+                  <div className="font-mono text-[11px] text-muted leading-relaxed">{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ════ FEATURES / HOW IT WORKS ════ */}
         {section === 'features' && (
           <div>
             <div className="mb-8">
-              <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Features</div>
-              <h1 className="font-serif text-3xl font-light text-ink mb-2">Core functionality</h1>
-              <p className="font-mono text-xs text-muted">Each module, what it does, and the key design decisions.</p>
+              <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">How It Works</div>
+              <h1 className="font-serif text-3xl font-light text-ink mb-2">From raw listing to ready-to-send application.</h1>
+              <p className="font-mono text-xs text-muted">Ten automated steps between a job URL and your decision to apply.</p>
             </div>
 
-            <SectionLabel>Scraping layer</SectionLabel>
+            <SectionLabel>Core modules</SectionLabel>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <FeatureCard icon="🔍" title="Multi-source scraper"
-                desc="Scrapes LinkedIn (HTML + guest API enrichment), RemoteOK, Remotive, Jobicy, and We Work Remotely. Jobicy uses dynamic tag derivation from target roles — a lawyer gets legal/consulting tags, a nurse gets healthcare. LinkedIn descriptions are fetched before scoring so Claude has full context."
-                tags={['linkedin', 'remoteok', 'remotive', 'jobicy', 'wwr']} />
-              <FeatureCard icon="🔄" title="Role-aware deduplication"
-                desc="IDs are MD5(url)[:8] + MD5(user_id)[:8] — same URL maps to a unique row per user without partitioned tables. Cross-source duplicates collapsed by (title, company) in Python. Role filter uses 60% keyword overlap so 'Registered Nurse ICU' matches 'ICU Registered Nurse'."
-                tags={['md5 scoping', 'cross-source dedup', 'keyword overlap']} />
-              <FeatureCard icon="📅" title="LinkedIn enrichment"
-                desc="After dedup, LinkedIn jobs (no descriptions from the search page) are enriched via the guest jobs API. Extracts full description, company, salary, and posted date from 'X days ago' text. Already-enriched jobs are skipped to prevent double HTTP fetches."
-                tags={['guest api', 'posted_at', 'salary extraction']} />
-              <FeatureCard icon="📡" title="Event scraping"
-                desc="Meetup (RSS by city group), Luma (city page __NEXT_DATA__ JSON), and Eventbrite (ld+json structured data). Virtual events filtered. Past events auto-pruned on page load. Cross-project RLS handled with service_role key since auth runs on a different Supabase project."
-                tags={['meetup', 'luma', 'eventbrite', 'service_role']} />
-            </div>
-
-            <SectionLabel>AI scoring layer</SectionLabel>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <FeatureCard icon="🤖" title="Two-pass scoring"
-                desc="Pass 1: cheap heuristic pre-filter using skills extracted from the user's resume (not hardcoded vocab). Pass 2: Claude Sonnet scores 1–10 against the full resume. In hybrid mode, only jobs scoring ≥6 on cheap reach Claude. Reduces cost ~60% with minimal quality loss."
-                tags={['claude-sonnet-4-6', 'hybrid mode', 'skill extraction']} />
-              <FeatureCard icon="✍️" title="Cover letter generation"
-                desc="Generated for jobs scoring 8+. Prompt enforces: body only (no header block), first person, specific achievements with numbers, forward-looking close. 900 token budget. System prompt caches the resume via prompt caching to reduce token cost across a batch."
-                tags={['prompt caching', '900 tokens', 'skill-first']} />
+                desc="Pulls from LinkedIn, RemoteOK, Remotive, Jobicy, and We Work Remotely. LinkedIn descriptions are fetched in full before scoring so Claude has complete context. Role filtering uses 60% keyword overlap — broad enough to catch variants, tight enough to cut noise."
+                tags={['5 job boards', 'real descriptions', 'role-aware']} />
+              <FeatureCard icon="🤖" title="Two-pass AI scoring"
+                desc="Pass 1: cheap heuristic using skills extracted from your resume (not hardcoded vocab). Pass 2: Claude Sonnet scores 1–10 against your full resume with reasoning. Only jobs passing the heuristic reach Claude — cuts API cost ~60% with minimal quality loss."
+                tags={['claude-sonnet-4-6', 'hybrid mode', 'cost-efficient']} />
+              <FeatureCard icon="✍️" title="Tailored cover letters"
+                desc="Generated automatically for jobs scoring 8+. Prompt enforces first-person, specific achievements with metrics, forward-looking close. Resume cached at the system prompt level via prompt caching — one cache hit covers an entire batch run."
+                tags={['8+ score only', 'prompt caching', 'metrics-driven']} />
               <FeatureCard icon="🧠" title="Personalization engine"
-                desc="Learns from apply/skip signals. Positive: company bonus, good source bonus, title token match. Negative: company penalty, neg title token penalty. Min 3 occurrences before a token becomes negative. Target role keywords are protected — 'genai' can't become a negative signal."
-                tags={['event tracking', 'token protection', 'personalization']} />
-              <FeatureCard icon="📊" title="Event relevance scoring"
-                desc="Heuristic scoring against resume skills. 18 domain categories covering all professions — legal, healthcare, sales, marketing, HR, finance, engineering, and tech. Score 4 base + domain hits (capped at 4) + skill overlap + professional signals − beginner event penalty."
-                tags={['18 domains', 'multi-profession', 'heuristic']} />
+                desc="Learns from every apply and skip. Positive signals: company, source, and title tokens that predict your yes. Negative signals penalised only after 3+ occurrences. Target role keywords are protected — they can never become a negative signal."
+                tags={['apply/skip signals', 'company memory', 'token protection']} />
+              <FeatureCard icon="📅" title="Networking events"
+                desc="Scrapes Meetup, Luma, and Eventbrite for local tech and professional events. Scores relevance against your resume across 18 domain categories. Virtual events filtered. Past events auto-pruned. Track interested and attending status per event."
+                tags={['meetup', 'luma', 'eventbrite', '18 domains']} />
+              <FeatureCard icon="🔐" title="Multi-user, any profession"
+                desc="Full Supabase Auth. Each user's data is isolated via MD5-scoped job IDs — same URL creates separate rows per user without partitioned tables. Works for lawyers, nurses, engineers, designers, marketers — job vocab and scraper tags derived from your target roles."
+                tags={['supabase auth', 'any profession', 'row isolation']} />
             </div>
 
-            <SectionLabel>Platform layer</SectionLabel>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FeatureCard icon="🔐" title="Auth & multi-user isolation"
-                desc="Supabase Auth (email/password + OTP magic link). User IDs scoped via MD5 hashing — same job URL creates separate rows per user. Session persistence restores resume and target roles on login. Auth wall enforced before any data access."
-                tags={['supabase auth', 'otp', 'row isolation']} />
-              <FeatureCard icon="🌐" title="Multi-profession support"
-                desc="EXCLUDE_KEYWORDS slimmed to universal terms only. Skill vocab covers 15+ professions. Jobicy and WWR derive queries dynamically from user target roles. A lawyer gets legal tags; a designer gets design feeds. Skills detected from resume shown as chips in Setup."
-                tags={['dynamic tags', 'skill chips', 'any profession']} />
+            <SectionLabel>Differentiators</SectionLabel>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {[
+                ['Skill-first scoring', 'Score prompt ranks skills before seniority. A 6-year engineer doesn\'t get filtered out of a "Senior" role — the match matters more than the title.'],
+                ['Full-description enrichment', 'LinkedIn search pages hide descriptions. Job Pal fetches the full text via the guest API before any scoring happens.'],
+                ['CI on every push', 'GitHub Actions runs 5 health checks: syntax, scraper routing for 5 user archetypes, keyword drift, skill extraction, and config leak detection.'],
+              ].map(([title, desc]) => (
+                <div key={title} className="bg-card border border-border rounded-xl p-5">
+                  <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">{title}</div>
+                  <div className="font-mono text-[11px] text-muted leading-relaxed">{desc}</div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -270,36 +356,50 @@ export default function Overview() {
           <div>
             <div className="mb-8">
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Tech Stack</div>
-              <h1 className="font-serif text-3xl font-light text-ink mb-2">Architecture & dependencies</h1>
-              <p className="font-mono text-xs text-muted">Every layer of the stack, what it does, and why.</p>
+              <h1 className="font-serif text-3xl font-light text-ink mb-2">Built lean. Scales without refactoring.</h1>
+              <p className="font-mono text-xs text-muted">Every dependency chosen for cost, speed, and replaceability. No vendor lock-in except Supabase (swappable) and Claude (the core product value).</p>
             </div>
 
-            <SectionLabel>Application</SectionLabel>
+            <SectionLabel>Application layer</SectionLabel>
             <div className="bg-card border border-border rounded-xl divide-y divide-border mb-8">
-              <StackRow layer="Frontend"  tech={['Streamlit 1.51', 'Python 3.13']}              note="Single-file UI (ui_v2.py). Custom CSS dark theme matching techturi brand." />
-              <StackRow layer="AI"        tech={['Claude Sonnet 4.6', 'Anthropic SDK']}         note="Job scoring, cover letters, role suggestion. Haiku for batch event scoring." />
-              <StackRow layer="Database"  tech={['Supabase (PostgreSQL)', 'supabase-py 2.4']}   note="job_applications, networking_events, user_sessions, application_events." />
-              <StackRow layer="Auth"      tech={['Supabase Auth', 'Email/Password', 'OTP']}     note="Magic link + password login. Session restored from Supabase on each load." />
-              <StackRow layer="Scraping"  tech={['requests', 'feedparser', 'BeautifulSoup']}    note="HTML parsing, RSS feeds, JSON-LD extraction. No headless browser needed." />
-              <StackRow layer="Deploy"    tech={['Streamlit Cloud', 'Auto-deploy on push']}     note="Secrets in Streamlit Cloud dashboard. Redeploys from main branch in ~2min." />
+              <StackRow layer="Frontend"  tech={['Streamlit 1.51', 'Python 3.13']}              note="Single-file UI. Custom dark CSS. Deploys in 2 min from push." />
+              <StackRow layer="AI"        tech={['Claude Sonnet 4.6', 'Anthropic SDK']}         note="Scoring, cover letters, event relevance. Haiku for cheap pass." />
+              <StackRow layer="Database"  tech={['Supabase', 'PostgreSQL', 'supabase-py 2.4']} note="job_applications, events, sessions, application_events." />
+              <StackRow layer="Auth"      tech={['Supabase Auth', 'Email/OTP']}                 note="Magic link + password. Session restored on every load." />
+              <StackRow layer="Scraping"  tech={['requests', 'feedparser', 'BeautifulSoup']}    note="No headless browser. Pure HTTP + HTML/JSON/RSS parsing." />
+              <StackRow layer="Deploy"    tech={['Streamlit Cloud']}                            note="Free tier. Secrets in dashboard. Auto-deploy on push to main." />
             </div>
 
             <SectionLabel>Data sources</SectionLabel>
             <div className="bg-card border border-border rounded-xl divide-y divide-border mb-8">
-              <StackRow layer="LinkedIn"   tech={['Public HTML search', 'Jobs Guest API']}    note="Titles + companies from search HTML. Full descriptions from /jobs-guest/ API." />
-              <StackRow layer="RemoteOK"   tech={['REST API (free)']}                          note="tag-based queries, salary data, no auth. Tags derived from target roles." />
-              <StackRow layer="Remotive"   tech={['REST API (free)']}                          note="Full job descriptions, remote-first roles." />
-              <StackRow layer="Jobicy"     tech={['REST API (free)']}                          note="Dynamic tags from user roles. 13 profession categories mapped." />
-              <StackRow layer="WWR"        tech={['RSS feeds']}                                note="5 live category feeds. Feed selection dynamic from target roles." />
-              <StackRow layer="Events"     tech={['Meetup RSS', 'Luma JSON', 'Eventbrite LD']} note="3 sources, city-slug normalised, past events auto-pruned." />
+              <StackRow layer="LinkedIn"   tech={['Public search HTML', 'Guest Jobs API']}  note="Titles + companies from search. Full descriptions from /jobs-guest/." />
+              <StackRow layer="RemoteOK"   tech={['REST API (free)']}                        note="Tag-based queries, salary data, no auth required." />
+              <StackRow layer="Remotive"   tech={['REST API (free)']}                        note="Full descriptions, remote-first focus." />
+              <StackRow layer="Jobicy"     tech={['REST API (free)']}                        note="Dynamic tags derived from user's target roles." />
+              <StackRow layer="WWR"        tech={['RSS feeds']}                              note="5 live category feeds. Category selection dynamic." />
+              <StackRow layer="Events"     tech={['Meetup RSS', 'Luma JSON', 'Eventbrite']} note="City-slug normalised. Past events auto-pruned on load." />
             </div>
 
-            <SectionLabel>Infra & tooling</SectionLabel>
-            <div className="bg-card border border-border rounded-xl divide-y divide-border">
-              <StackRow layer="CI/CD"      tech={['GitHub Actions']}    note="5 health checks on every push. ~37s runtime. No secrets needed." />
-              <StackRow layer="Scanner"    tech={['Claude Code Remote']} note="Weekly remote agent (Mondays 9am CT) scanning for regressions." />
-              <StackRow layer="Overview"   tech={['Next.js 14', 'Vercel', 'Recharts', 'Tailwind']} note="This page. Live Supabase pull, deployed on Vercel." />
-              <StackRow layer="MCP"        tech={['mcp_server.py']}     note="Exposes pipeline as MCP tool so Claude can orchestrate via natural language." />
+            <SectionLabel>Infrastructure & tooling</SectionLabel>
+            <div className="bg-card border border-border rounded-xl divide-y divide-border mb-8">
+              <StackRow layer="CI/CD"      tech={['GitHub Actions']}               note="5 health checks per push. ~37s runtime. No secrets needed." />
+              <StackRow layer="Scan bot"   tech={['Claude Code Remote Agent']}     note="Weekly scheduled agent (Mon 9am CT) scanning for regressions." />
+              <StackRow layer="MCP"        tech={['mcp_server.py']}               note="Exposes pipeline as MCP tool — Claude can orchestrate via chat." />
+              <StackRow layer="Overview"   tech={['Next.js 14', 'Vercel', 'Recharts', 'Tailwind']} note="This page. Live Supabase pull, deployed on Vercel Edge." />
+            </div>
+
+            <SectionLabel>What it would take to scale</SectionLabel>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {[
+                ['1k users', 'No changes. Supabase free tier handles ~500k rows. Streamlit Cloud handles concurrent sessions. Claude API cost ~$0.20/user/week in hybrid mode.'],
+                ['10k users', 'Move to Supabase Pro ($25/mo). Add a job queue (BullMQ or Celery) for async scrape runs. Background processing keeps the UI snappy.'],
+                ['100k users', 'Replace Streamlit with Next.js or FastAPI frontend. Add Redis caching for scored jobs. Consider Claude Batch API for 50% cost reduction on scoring.'],
+              ].map(([tier, desc]) => (
+                <div key={tier} className="bg-card border border-border rounded-xl p-5">
+                  <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">{tier}</div>
+                  <div className="font-mono text-[11px] text-muted leading-relaxed">{desc}</div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -309,23 +409,23 @@ export default function Overview() {
           <div>
             <div className="mb-8">
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Pipeline</div>
-              <h1 className="font-serif text-3xl font-light text-ink mb-2">How a job goes from URL to queue</h1>
-              <p className="font-mono text-xs text-muted">End-to-end flow from raw scrape to review queue.</p>
+              <h1 className="font-serif text-3xl font-light text-ink mb-2">From raw listing to curated queue.</h1>
+              <p className="font-mono text-xs text-muted">Every step between a job URL and the moment you decide to apply.</p>
             </div>
 
-            <SectionLabel>Job pipeline</SectionLabel>
+            <SectionLabel>The 10-step job pipeline</SectionLabel>
             <div className="space-y-2 mb-10">
               {[
-                { step: '01', label: 'Scrape',         desc: 'scrape_all() — 5 sources in parallel. Role filter removes off-target titles using 60% keyword overlap.',            tag: 'scrapers/' },
-                { step: '02', label: 'Dedup',           desc: 'get_seen_ids() returns all job IDs for the user. New jobs only continue. Scoped IDs prevent cross-user collisions.', tag: 'tracker.py' },
-                { step: '03', label: 'Beta cap',        desc: 'If >50 new jobs, cheap-score all, keep top 50 by cheap score, reset scores. Prevents runaway API costs.',           tag: 'ui_v2.py' },
-                { step: '04', label: 'Enrich',          desc: 'LinkedIn jobs without descriptions are fetched via guest API (title, company, salary, posted_at, description).',   tag: 'fetcher.py' },
-                { step: '05', label: 'Pass 1 — Cheap',  desc: 'Resume skills extracted dynamically. Job skills matched. Title/role/location/salary checked. Score 1–10.',         tag: 'agent.py' },
-                { step: '06', label: 'Pass 2 — Claude', desc: 'Jobs scoring ≥5 sent to Claude Sonnet with full resume + job description. Returns score, reason, seniority.',     tag: 'agent.py' },
-                { step: '07', label: 'Cover letters',   desc: 'Jobs scoring 8+ get a cover letter generated by Claude Sonnet. Cached system prompt reduces token cost.',          tag: 'agent.py' },
-                { step: '08', label: 'Upsert',          desc: 'upsert_jobs() saves all scored jobs to Supabase with on_conflict="id". Salary ranges, seniority, score saved.',   tag: 'tracker.py' },
-                { step: '09', label: 'Personalise',     desc: 'get_personalization_context() reads event signals. Rank queue adds personal bonus (company/token/source weights).', tag: 'tracker.py' },
-                { step: '10', label: 'Review',          desc: 'Jobs scoring ≥7 appear in Review Queue sorted by effective score. User applies, skips, or marks applied.',         tag: 'ui_v2.py' },
+                { step: '01', label: 'Scrape',          desc: 'scrape_all() hits 5 sources. Role filter removes off-target titles using 60% keyword overlap. Runs in parallel.',         tag: 'scrapers/' },
+                { step: '02', label: 'Dedup',            desc: 'get_seen_ids() returns all job IDs for this user. New jobs only proceed. MD5-scoped IDs prevent cross-user collisions.', tag: 'tracker.py' },
+                { step: '03', label: 'Beta cap',         desc: 'If >50 new jobs, cheap-score all, keep top 50 by heuristic score. Prevents runaway Claude API costs during a big scrape.', tag: 'ui_v2.py' },
+                { step: '04', label: 'Enrich',           desc: 'LinkedIn jobs without descriptions are fetched via guest API — full description, salary, posted date. Already-enriched jobs skipped.', tag: 'fetcher.py' },
+                { step: '05', label: 'Pass 1 — Cheap',  desc: 'Skills extracted from your resume dynamically. Job skills matched. Title, role, location, salary checked. Score 1–10 in milliseconds.', tag: 'agent.py' },
+                { step: '06', label: 'Pass 2 — Claude', desc: 'Jobs scoring ≥5 on cheap sent to Claude Sonnet with your full resume + job description. Returns score 1–10, reasoning, and seniority match.', tag: 'agent.py' },
+                { step: '07', label: 'Cover letters',   desc: 'Jobs scoring 8+ get a cover letter from Claude Sonnet. System prompt (with resume) is cached — one cache hit covers the whole batch.', tag: 'agent.py' },
+                { step: '08', label: 'Upsert',           desc: 'upsert_jobs() saves all scored jobs to Supabase with on_conflict="id". Score, salary range, seniority, source all persisted.', tag: 'tracker.py' },
+                { step: '09', label: 'Personalise',     desc: 'get_personalization_context() reads your apply/skip history. Review queue re-ranked by effective score (base + personal bonuses).', tag: 'tracker.py' },
+                { step: '10', label: 'Review',           desc: 'Jobs scoring ≥7 appear in your queue sorted by effective score. Cover letters pre-loaded. One click to apply, skip, or save.', tag: 'ui_v2.py' },
               ].map(({ step, label, desc, tag }) => (
                 <div key={step} className="flex gap-4 bg-card border border-border rounded-xl p-4">
                   <div className="font-mono text-[10px] text-accent w-6 shrink-0 pt-0.5">{step}</div>
@@ -339,7 +439,7 @@ export default function Overview() {
             </div>
 
             <SectionLabel>Application lifecycle</SectionLabel>
-            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] mb-8">
               {['new', '→', 'applied', '→', 'interview', '→', 'rejected'].map((s, i) => (
                 s === '→'
                   ? <span key={i} className="text-border">→</span>
@@ -350,16 +450,24 @@ export default function Overview() {
                 <span key={s} className="bg-card border border-border rounded px-3 py-1.5 text-muted">{s}</span>
               ))}
             </div>
+
+            <SectionLabel>What gets tracked per job</SectionLabel>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {['title', 'company', 'source', 'url', 'score (1–10)', 'reasoning', 'seniority', 'salary_range',
+                'cover_letter', 'status', 'applied_at', 'created_at', 'scored_by', 'cheap_score'].map(f => (
+                <div key={f} className="bg-card border border-border rounded px-3 py-2 font-mono text-[10px] text-muted">{f}</div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* ════ LIVE DATA ════ */}
+        {/* ════ LIVE TRACTION ════ */}
         {section === 'metrics' && (
           <div>
             <div className="mb-8">
-              <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Live Data</div>
-              <h1 className="font-serif text-3xl font-light text-ink mb-2">Pipeline metrics</h1>
-              <p className="font-mono text-xs text-muted">Live from Supabase — refreshes on page load.</p>
+              <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Live Traction</div>
+              <h1 className="font-serif text-3xl font-light text-ink mb-2">Real numbers from production.</h1>
+              <p className="font-mono text-xs text-muted">Pulled live from Supabase on page load. No mocked data.</p>
             </div>
 
             {!stats ? (
@@ -373,13 +481,39 @@ export default function Overview() {
                   <MetricCard label="Total Tracked"  value={stats.total}                                                        />
                   <MetricCard label="In Queue (7+)"  value={stats.queue}      accent                                            />
                   <MetricCard label="Applied"         value={stats.applied}                                                      />
-                  <MetricCard label="Interviews"      value={stats.interviews}                                                    />
+                  <MetricCard label="Interviews"      value={stats.interviews}                                                   />
                   <MetricCard label="With Salary"     value={stats.withSalary} sub={`${Math.round(stats.withSalary/Math.max(stats.total,1)*100)}% coverage`} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                   <div className="bg-card border border-border rounded-xl p-5">
-                    <SectionLabel>Score distribution</SectionLabel>
+                    <div className="flex items-start justify-between mb-4">
+                      <SectionLabel>Score distribution</SectionLabel>
+                    </div>
+                    <div className="flex gap-2 mb-4 flex-wrap">
+                      <select
+                        value={scoreSource}
+                        onChange={e => setScoreSource(e.target.value)}
+                        className="bg-surface border border-border rounded px-2 py-1 font-mono text-[10px] text-muted focus:outline-none focus:border-accent"
+                      >
+                        <option value="all">All sources</option>
+                        {stats.sources.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      {stats.models.length > 0 ? (
+                        <select
+                          value={scoreModel}
+                          onChange={e => setScoreModel(e.target.value)}
+                          className="bg-surface border border-border rounded px-2 py-1 font-mono text-[10px] text-muted focus:outline-none focus:border-accent"
+                        >
+                          <option value="all">All models</option>
+                          {stats.models.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      ) : (
+                        <span className="font-mono text-[10px] text-muted/40 py-1 px-2 border border-dashed border-border rounded">
+                          model filter — add scored_by col
+                        </span>
+                      )}
+                    </div>
                     <ResponsiveContainer width="100%" height={200}>
                       <PieChart>
                         <Pie data={scoreData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3}>
@@ -388,7 +522,7 @@ export default function Overview() {
                         <Tooltip contentStyle={{ background:'#1C1C18', border:'1px solid #2A2A25', borderRadius:8, fontFamily:'JetBrains Mono', fontSize:11 }} />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="flex gap-3 justify-center mt-2">
+                    <div className="flex gap-3 justify-center mt-2 flex-wrap">
                       {scoreData.map(e => (
                         <div key={e.name} className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full" style={{ background: SCORE_COLORS[e.name] ?? '#6B6B65' }} />
