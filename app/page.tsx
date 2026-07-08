@@ -74,12 +74,12 @@ function FeatureCard({ icon, title, desc, tags }: {
 
 function StackRow({ layer, tech, note }: { layer: string; tech: string[]; note: string }) {
   return (
-    <div className="flex items-start gap-4 py-3 border-b border-border last:border-0">
-      <div className="font-mono text-[10px] text-muted tracking-widest uppercase w-24 shrink-0 pt-0.5">{layer}</div>
-      <div className="flex flex-wrap gap-1.5 flex-1">
+    <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
+      <div className="font-mono text-[10px] text-muted tracking-widest uppercase w-16 md:w-24 shrink-0 pt-0.5">{layer}</div>
+      <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
         {tech.map(t => <Tag key={t} color="default">{t}</Tag>)}
       </div>
-      <div className="font-mono text-[10px] text-muted w-48 shrink-0 text-right leading-relaxed">{note}</div>
+      <div className="hidden md:block font-mono text-[10px] text-muted w-48 shrink-0 text-right leading-relaxed">{note}</div>
     </div>
   )
 }
@@ -132,55 +132,71 @@ export default function Overview() {
   return (
     <div className="flex min-h-screen">
 
-      {/* ── Sidebar ─────────────────────────────────────── */}
-      <aside className="w-52 shrink-0 bg-surface border-r border-border flex flex-col py-6 px-4">
-        <div className="mb-8 px-2">
-          <img src="/logo.svg" alt="techturi" className="h-6 w-auto mb-3 opacity-90" />
-          <div className="font-serif text-xl text-ink leading-tight">Job Pal</div>
-          <div className="font-mono text-[10px] text-muted mt-0.5">AI Job Search · v1.0</div>
+      {/* ── Sidebar — hidden on mobile, icon-only on tablet, full on desktop ── */}
+      <aside className="hidden md:flex md:w-14 lg:w-52 shrink-0 bg-surface border-r border-border flex-col py-6 md:px-2 lg:px-4">
+        <div className="mb-8 md:px-1 lg:px-2 overflow-hidden">
+          <img src="/logo.svg" alt="techturi" className="h-5 w-auto mb-3 opacity-90 hidden lg:block" />
+          <div className="font-serif text-xl text-ink leading-tight hidden lg:block">Job Pal</div>
+          <div className="font-mono text-[10px] text-muted mt-0.5 hidden lg:block">AI Job Search · v1.0</div>
+          <div className="font-mono text-[10px] text-accent lg:hidden text-center">JP</div>
         </div>
 
-        <span className="font-mono text-[9px] text-muted tracking-widest uppercase px-2 mb-2">Navigation</span>
+        <span className="font-mono text-[9px] text-muted tracking-widest uppercase md:px-1 lg:px-2 mb-2 hidden lg:block">Navigation</span>
         {navItems.map(n => (
           <button key={n.id} onClick={() => setSection(n.id)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg font-mono text-xs text-left transition-colors ${
-              section === n.id
-                ? 'bg-accent/10 text-accent'
-                : 'text-muted hover:text-ink hover:bg-card'
-            }`}>
-            <span>{n.icon}</span> {n.label}
+            className={`flex items-center md:justify-center lg:justify-start gap-2 md:px-2 lg:px-3 py-2 rounded-lg font-mono text-xs text-left transition-colors ${
+              section === n.id ? 'bg-accent/10 text-accent' : 'text-muted hover:text-ink hover:bg-card'
+            }`}
+            title={n.label}>
+            <span className="text-sm">{n.icon}</span>
+            <span className="hidden lg:inline">{n.label}</span>
           </button>
         ))}
 
         <div className="mt-4 border-t border-border pt-4">
-          <span className="font-mono text-[9px] text-muted tracking-widest uppercase px-2 mb-2 block">Links</span>
+          <span className="font-mono text-[9px] text-muted tracking-widest uppercase md:px-1 lg:px-2 mb-2 block hidden lg:block">Links</span>
           <a href="https://jobpal.streamlit.app" target="_blank" rel="noreferrer"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted hover:text-ink hover:bg-card font-mono text-xs transition-colors">
-            <span>↗</span> Open App
+            className="flex items-center md:justify-center lg:justify-start gap-2 md:px-2 lg:px-3 py-2 rounded-lg text-muted hover:text-ink hover:bg-card font-mono text-xs transition-colors"
+            title="Open App">
+            <span>↗</span><span className="hidden lg:inline"> Open App</span>
           </a>
           <a href="https://github.com/tegapeters/job-bot" target="_blank" rel="noreferrer"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted hover:text-ink hover:bg-card font-mono text-xs transition-colors">
-            <span>⌥</span> GitHub
+            className="flex items-center md:justify-center lg:justify-start gap-2 md:px-2 lg:px-3 py-2 rounded-lg text-muted hover:text-ink hover:bg-card font-mono text-xs transition-colors"
+            title="GitHub">
+            <span>⌥</span><span className="hidden lg:inline"> GitHub</span>
           </a>
         </div>
 
-        <div className="mt-auto pt-6 border-t border-border px-2">
+        <div className="mt-auto pt-4 border-t border-border md:px-1 lg:px-2">
           {stats ? (
             <>
-              <div className="font-mono text-[9px] text-muted tracking-widest uppercase">Live data</div>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                <span className="font-mono text-[10px] text-accent">Connected · {stats.total} jobs</span>
+              <div className="hidden lg:block font-mono text-[9px] text-muted tracking-widest uppercase">Live data</div>
+              <div className="flex items-center md:justify-center lg:justify-start gap-1.5 mt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" />
+                <span className="font-mono text-[10px] text-accent hidden lg:inline">Connected · {stats.total} jobs</span>
               </div>
             </>
           ) : (
-            <div className="font-mono text-[10px] text-muted">Loading…</div>
+            <div className="w-1.5 h-1.5 rounded-full bg-muted mx-auto" />
           )}
         </div>
       </aside>
 
+      {/* ── Mobile bottom nav ────────────────────────────── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden bg-surface border-t border-border">
+        {navItems.map(n => (
+          <button key={n.id} onClick={() => setSection(n.id)}
+            className={`flex-1 flex flex-col items-center py-2 gap-0.5 font-mono transition-colors ${
+              section === n.id ? 'text-accent' : 'text-muted'
+            }`}>
+            <span className="text-base">{n.icon}</span>
+            <span className="text-[8px] tracking-wide">{n.label.split(' ')[0]}</span>
+          </button>
+        ))}
+      </nav>
+
       {/* ── Main ─────────────────────────────────────────── */}
-      <main className="flex-1 overflow-auto p-8 max-w-5xl">
+      <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 pb-20 md:pb-8 max-w-5xl">
 
         {/* ════ OVERVIEW ════ */}
         {section === 'overview' && (
@@ -188,7 +204,7 @@ export default function Overview() {
             {/* Hero */}
             <div className="mb-10">
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-3">Job Pal — Product Overview</div>
-              <h1 className="font-serif text-5xl font-light text-ink leading-tight mb-4">
+              <h1 className="font-serif text-3xl md:text-5xl font-light text-ink leading-tight mb-4">
                 AI that finds, scores, and<br/>
                 <em className="text-accent">applies</em> to jobs for you.
               </h1>
@@ -277,7 +293,7 @@ export default function Overview() {
           <div>
             <div className="mb-8">
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">The Problem</div>
-              <h1 className="font-serif text-4xl font-light text-ink mb-3">Job searching is broken.</h1>
+              <h1 className="font-serif text-2xl md:text-4xl font-light text-ink mb-3">Job searching is broken.</h1>
               <p className="font-mono text-xs text-muted max-w-xl leading-relaxed">
                 Job boards surface thousands of listings. Candidates have no way to filter by actual fit,
                 no time to research every company, and no tool that writes for them. The result: spray-and-pray
@@ -294,8 +310,8 @@ export default function Overview() {
                 ['Bad signals', 'Most ATS tools rank candidates by keyword density, not by actual job fit. Candidates have no visibility into how they score before applying.'],
                 ['Fragmented sources', 'The best jobs are spread across LinkedIn, company sites, niche boards, and aggregators. No single tool pulls and ranks them all.'],
               ].map(([title, desc]) => (
-                <div key={title} className="flex gap-4 bg-card border border-border rounded-xl p-5">
-                  <div className="font-mono text-[10px] text-accent w-28 shrink-0 pt-0.5 leading-relaxed">{title}</div>
+                <div key={title} className="flex flex-col md:flex-row gap-2 md:gap-4 bg-card border border-border rounded-xl p-5">
+                  <div className="font-mono text-[10px] text-accent md:w-28 shrink-0 leading-relaxed">{title}</div>
                   <div className="font-mono text-[11px] text-muted leading-relaxed">{desc}</div>
                 </div>
               ))}
@@ -323,7 +339,7 @@ export default function Overview() {
           <div>
             <div className="mb-8">
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">How It Works</div>
-              <h1 className="font-serif text-3xl font-light text-ink mb-2">From raw listing to ready-to-send application.</h1>
+              <h1 className="font-serif text-xl md:text-3xl font-light text-ink mb-2">From raw listing to ready-to-send application.</h1>
               <p className="font-mono text-xs text-muted">Ten automated steps between a job URL and your decision to apply.</p>
             </div>
 
@@ -370,7 +386,7 @@ export default function Overview() {
           <div>
             <div className="mb-8">
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Tech Stack</div>
-              <h1 className="font-serif text-3xl font-light text-ink mb-2">Built lean. Scales without refactoring.</h1>
+              <h1 className="font-serif text-xl md:text-3xl font-light text-ink mb-2">Built lean. Scales without refactoring.</h1>
               <p className="font-mono text-xs text-muted">Every dependency chosen for cost, speed, and replaceability. No vendor lock-in except Supabase (swappable) and Claude (the core product value).</p>
             </div>
 
@@ -423,7 +439,7 @@ export default function Overview() {
           <div>
             <div className="mb-8">
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Pipeline</div>
-              <h1 className="font-serif text-3xl font-light text-ink mb-2">From raw listing to curated queue.</h1>
+              <h1 className="font-serif text-xl md:text-3xl font-light text-ink mb-2">From raw listing to curated queue.</h1>
               <p className="font-mono text-xs text-muted">Every step between a job URL and the moment you decide to apply.</p>
             </div>
 
@@ -443,11 +459,11 @@ export default function Overview() {
               ].map(({ step, label, desc, tag }) => (
                 <div key={step} className="flex gap-4 bg-card border border-border rounded-xl p-4">
                   <div className="font-mono text-[10px] text-accent w-6 shrink-0 pt-0.5">{step}</div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="font-mono text-xs text-ink mb-0.5">{label}</div>
                     <div className="font-mono text-[11px] text-muted leading-relaxed">{desc}</div>
                   </div>
-                  <Tag color="default">{tag}</Tag>
+                  <div className="hidden md:block shrink-0"><Tag color="default">{tag}</Tag></div>
                 </div>
               ))}
             </div>
@@ -480,7 +496,7 @@ export default function Overview() {
           <div>
             <div className="mb-8">
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Build Plan</div>
-              <h1 className="font-serif text-4xl font-light text-ink mb-3">Honest grades. Clear path to A.</h1>
+              <h1 className="font-serif text-2xl md:text-4xl font-light text-ink mb-3">Honest grades. Clear path to A.</h1>
               <p className="font-mono text-xs text-muted max-w-xl leading-relaxed">
                 Where Job Pal stands today — pulled live from{' '}
                 <a href="https://github.com/tegapeters/job-bot/blob/main/BUILDPLAN.md" target="_blank" rel="noreferrer" className="text-accent hover:underline">BUILDPLAN.md</a>.
@@ -586,7 +602,7 @@ export default function Overview() {
           <div>
             <div className="mb-8">
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Live Traction</div>
-              <h1 className="font-serif text-3xl font-light text-ink mb-2">Real numbers from production.</h1>
+              <h1 className="font-serif text-xl md:text-3xl font-light text-ink mb-2">Real numbers from production.</h1>
               <p className="font-mono text-xs text-muted">Pulled live from Supabase on page load. No mocked data.</p>
             </div>
 
@@ -597,7 +613,7 @@ export default function Overview() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
                   <MetricCard label="Total Tracked"  value={stats.total}                                                        />
                   <MetricCard label="In Queue (7+)"  value={stats.queue}      accent                                            />
                   <MetricCard label="Applied"         value={stats.applied}                                                      />
