@@ -85,15 +85,28 @@ function StackRow({ layer, tech, note }: { layer: string; tech: string[]; note: 
 }
 
 type Stats = Awaited<ReturnType<typeof getStats>>
+type GradeRow = { area: string; grade: string; note: string }
+type BuildPlan = { grades: GradeRow[]; overall: string; overallScore: number; currentPhase: string; lastUpdated: string; fetchedAt: string }
+
+function gradeColor(grade: string) {
+  if (grade.startsWith('A')) return 'text-accent'
+  if (grade === 'B+' || grade === 'B') return 'text-green-400'
+  if (grade === 'B-') return 'text-blue-400'
+  return 'text-orange-400'
+}
 
 /* ── Page ────────────────────────────────────────────────── */
 export default function Overview() {
-  const [stats, setStats]     = useState<Stats>(null)
-  const [section, setSection] = useState('overview')
+  const [stats, setStats]         = useState<Stats>(null)
+  const [plan, setPlan]           = useState<BuildPlan | null>(null)
+  const [section, setSection]     = useState('overview')
   const [scoreSource, setScoreSource] = useState('all')
   const [scoreModel,  setScoreModel]  = useState('all')
 
   useEffect(() => { getStats().then(setStats) }, [])
+  useEffect(() => {
+    fetch('/api/buildplan').then(r => r.json()).then(setPlan).catch(() => {})
+  }, [])
 
   const filteredBuckets = stats ? (() => {
     let rows = stats.rows
@@ -469,33 +482,32 @@ export default function Overview() {
               <div className="font-mono text-[10px] text-accent tracking-widest uppercase mb-2">Build Plan</div>
               <h1 className="font-serif text-4xl font-light text-ink mb-3">Honest grades. Clear path to A.</h1>
               <p className="font-mono text-xs text-muted max-w-xl leading-relaxed">
-                Where Job Pal stands today and exactly what it takes to close each gap. Overall: <span className="text-ink">B (79/100)</span>.
-                The AI core is the strongest part. SaaS readiness is the biggest remaining work.
+                Where Job Pal stands today — pulled live from{' '}
+                <a href="https://github.com/tegapeters/job-bot/blob/main/BUILDPLAN.md" target="_blank" rel="noreferrer" className="text-accent hover:underline">BUILDPLAN.md</a>.
+                Updates automatically with every push.
+                {plan && <> Overall: <span className="text-ink">{plan.overall}</span>. Active: <span className="text-ink">{plan.currentPhase}</span>.</>}
               </p>
+              {plan?.lastUpdated && (
+                <div className="font-mono text-[10px] text-muted mt-2">Last updated: {plan.lastUpdated}</div>
+              )}
             </div>
 
-            <SectionLabel>Current grades</SectionLabel>
+            <SectionLabel>Current grades {plan ? `— live from GitHub` : `— loading…`}</SectionLabel>
             <div className="bg-card border border-border rounded-xl overflow-hidden mb-10">
-              {[
-                { area: 'Core AI scoring',        grade: 'A-', color: 'text-accent',    note: 'Claude Sonnet + resume context + skill-first prompt + cover letters. The most differentiated part of the product.' },
-                { area: 'UX',                     grade: 'B+', color: 'text-green-400', note: 'Clean UI, status tracking, salary display, skills widget. Cover letter output quality strong.' },
-                { area: 'Stability',              grade: 'B+', color: 'text-green-400', note: '~25 bugs fixed. 3 low-severity issues remaining. No data loss events. Auth session recovery solid.' },
-                { area: 'Data quality',           grade: 'B+', color: 'text-green-400', note: 'Descriptions enriched before scoring, salary persisting, posted_at real dates from LinkedIn.' },
-                { area: 'Events',                 grade: 'B',  color: 'text-blue-400',  note: '70+ events tracked, relevance scoring across 18 domains, past event cleanup. Meetup thin outside major cities.' },
-                { area: 'Scraper coverage',       grade: 'B',  color: 'text-blue-400',  note: '5 sources working. LinkedIn is 80% of volume — single point of failure. Missing Indeed, Greenhouse, Lever.' },
-                { area: 'Multi-user isolation',   grade: 'B',  color: 'text-blue-400',  note: 'Scoped IDs, auth, session persistence live. RLS enabled via SQL. Needs real multi-user load testing.' },
-                { area: 'Learning/personalization', grade: 'B-', color: 'text-blue-400', note: 'Working and protected from bad signals. Needs apply/skip volume to become meaningful (thin data currently).' },
-                { area: 'Non-tech user support',  grade: 'C+', color: 'text-orange-400',note: 'Architecture supports any profession. Setup UX not tested with real non-tech users yet.' },
-                { area: 'SaaS readiness',         grade: 'C',  color: 'text-orange-400',note: 'Auth live. No Stripe, no rate limiting, no usage caps, no user-facing error handling on Supabase outages.' },
-              ].map(({ area, grade, color, note }) => (
+              {plan ? plan.grades.map(({ area, grade, note }) => (
                 <div key={area} className="flex gap-4 items-start p-4 border-b border-border last:border-0 hover:bg-white/[0.02] transition-colors">
-                  <div className={`font-mono text-lg font-bold w-8 shrink-0 ${color}`}>{grade}</div>
+                  <div className={`font-mono text-lg font-bold w-8 shrink-0 ${gradeColor(grade)}`}>{grade}</div>
                   <div className="flex-1">
                     <div className="font-mono text-[11px] text-ink mb-0.5">{area}</div>
                     <div className="font-mono text-[10px] text-muted leading-relaxed">{note}</div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="p-8 text-center font-mono text-[11px] text-muted">
+                  <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse mr-2" />
+                  Fetching latest grades from GitHub…
+                </div>
+              )}
             </div>
 
             <SectionLabel>Roadmap to A across the board</SectionLabel>
