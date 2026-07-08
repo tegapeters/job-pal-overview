@@ -122,7 +122,7 @@ export default function Overview() {
       {/* ── Sidebar ─────────────────────────────────────── */}
       <aside className="w-52 shrink-0 bg-surface border-r border-border flex flex-col py-6 px-4">
         <div className="mb-8 px-2">
-          <div className="font-mono text-[10px] text-muted tracking-widest uppercase mb-1">techturi</div>
+          <img src="/logo.svg" alt="techturi" className="h-6 w-auto mb-3 opacity-90" />
           <div className="font-serif text-xl text-ink leading-tight">Job Pal</div>
           <div className="font-mono text-[10px] text-muted mt-0.5">AI Job Search · v1.0</div>
         </div>
