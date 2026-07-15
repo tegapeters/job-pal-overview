@@ -259,7 +259,7 @@ export default function Overview() {
                 },
                 {
                   label: 'The edge',
-                  body: 'Two-pass AI scoring cuts API costs 60%. Personalization engine learns from every apply/skip. Multi-source enrichment finds salary data and real post dates that job boards hide. Works for any profession.',
+                  body: 'Parallel pipeline (5 scrapers + 8 scoring workers + 3 cover letter workers) cuts wall-clock time by ~3x. Gmail rejection scanner auto-updates statuses. Two-pass AI scoring cuts API costs 60%. Company research enriches every top match with mission + culture signals.',
                   color: 'text-muted',
                 },
               ].map(({ label, body, color }) => (
@@ -274,14 +274,14 @@ export default function Overview() {
             <SectionLabel>Build status</SectionLabel>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: 'App (Streamlit)',  status: 'Live',        color: 'accent' as const },
-                { label: 'Multi-user Auth',  status: 'Live',        color: 'accent' as const },
-                { label: 'CI / 5 checks',    status: 'Passing',     color: 'green'  as const },
-                { label: 'MCP integration',  status: 'Live',        color: 'accent' as const },
-                { label: 'Weekly scan bot',  status: 'Scheduled',   color: 'green'  as const },
-                { label: 'Multi-profession', status: 'Beta',        color: 'blue'   as const },
-                { label: 'Stripe / billing', status: 'Backlog',     color: 'default' as const },
-                { label: 'Daily digest',     status: 'Backlog',     color: 'default' as const },
+                { label: 'App (Streamlit)',       status: 'Live',      color: 'accent'  as const },
+                { label: 'Multi-user Auth',       status: 'Live',      color: 'accent'  as const },
+                { label: 'Persistent Sessions',   status: 'Live',      color: 'green'   as const },
+                { label: 'Parallel Pipeline',     status: 'Live',      color: 'green'   as const },
+                { label: 'Gmail Rejection Scan',  status: 'Live',      color: 'green'   as const },
+                { label: 'Company Research',      status: 'Beta',      color: 'blue'    as const },
+                { label: 'Pipeline Timing',       status: 'Live',      color: 'green'   as const },
+                { label: 'Stripe / billing',      status: 'Backlog',   color: 'default' as const },
               ].map(({ label, status, color }) => (
                 <div key={label} className="bg-card border border-border rounded-xl p-4 flex items-center justify-between">
                   <span className="font-mono text-[11px] text-muted">{label}</span>
@@ -350,30 +350,40 @@ export default function Overview() {
             <SectionLabel>Core modules</SectionLabel>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <FeatureCard icon="🔍" title="Multi-source scraper"
-                desc="Pulls from LinkedIn, RemoteOK, Remotive, Jobicy, and We Work Remotely. LinkedIn descriptions are fetched in full before scoring so Claude has complete context. Role filtering uses 60% keyword overlap — broad enough to catch variants, tight enough to cut noise."
-                tags={['5 job boards', 'real descriptions', 'role-aware']} />
+                desc="Pulls from LinkedIn, RemoteOK, Remotive, Jobicy, and We Work Remotely — all 5 in parallel via ThreadPoolExecutor (5 workers). LinkedIn descriptions fetched in full before scoring. Role filtering uses 60% keyword overlap — broad enough to catch variants, tight enough to cut noise."
+                tags={['5 job boards', 'parallel', 'real descriptions', 'role-aware']} />
               <FeatureCard icon="🤖" title="Two-pass AI scoring"
-                desc="Pass 1: cheap heuristic using skills extracted from your resume (not hardcoded vocab). Pass 2: Claude Sonnet scores 1–10 against your full resume with reasoning. Only jobs passing the heuristic reach Claude — cuts API cost ~60% with minimal quality loss."
-                tags={['claude-sonnet-4-6', 'hybrid mode', 'cost-efficient']} />
+                desc="Pass 1: cheap heuristic using skills extracted from your resume (not hardcoded vocab). Pass 2: 8 parallel Claude Sonnet workers score 1–10 against your full resume with reasoning. Only jobs passing the heuristic reach Claude — cuts API cost ~60% and wall-clock time by ~3x."
+                tags={['claude-sonnet-4-6', '8 workers', 'cost-efficient']} />
               <FeatureCard icon="✍️" title="Tailored cover letters"
-                desc="Generated automatically for jobs scoring 8+. Prompt enforces first-person, specific achievements with metrics, forward-looking close. Resume cached at the system prompt level via prompt caching — one cache hit covers an entire batch run."
-                tags={['8+ score only', 'prompt caching', 'metrics-driven']} />
+                desc="Generated for jobs scoring 8+ using 3 parallel Claude workers. Prompt enforces first-person, specific achievements with metrics, forward-looking close. Resume cached at the system prompt level via prompt caching — one cache hit covers an entire batch run."
+                tags={['8+ score only', '3 workers', 'prompt caching']} />
               <FeatureCard icon="🧠" title="Personalization engine"
                 desc="Learns from every apply and skip. Positive signals: company, source, and title tokens that predict your yes. Negative signals penalised only after 3+ occurrences. Target role keywords are protected — they can never become a negative signal."
                 tags={['apply/skip signals', 'company memory', 'token protection']} />
+              <FeatureCard icon="📬" title="Gmail rejection scanner"
+                desc="Connects to your applying inbox via IMAP (Gmail App Password — never stored). Searches 90 days of email for 17+ rejection phrases, matches against applied jobs by sender domain, ATS routing, and body text. Confidence-scored 0–100%. Updates statuses automatically on opt-in."
+                tags={['IMAP', 'opt-in', 'ATS-aware', 'credentials in-memory']} />
+              <FeatureCard icon="🏢" title="Company research"
+                desc="DuckDuckGo search + About page scrape surfaces company mission, culture, and recent news for every top match. Injected into cover letter context and the AI assistant — so letters reference real details, not generic filler."
+                tags={['DuckDuckGo', 'BeautifulSoup', 'RAG context']} />
+              <FeatureCard icon="⏱️" title="Pipeline timing & monitoring"
+                desc="Every pipeline stage is timed with perf_counter() and logged to Supabase as timing_json JSONB. Terminal breakdown table shows scrape / enrich / pass1 / pass2 / cover letters / save split. Historical data enables cost and latency optimization over time."
+                tags={['per-stage timing', 'Supabase JSONB', 'pipeline_runs table']} />
               <FeatureCard icon="📅" title="Networking events"
                 desc="Scrapes Meetup, Luma, and Eventbrite for local tech and professional events. Scores relevance against your resume across 18 domain categories. Virtual events filtered. Past events auto-pruned. Track interested and attending status per event."
                 tags={['meetup', 'luma', 'eventbrite', '18 domains']} />
               <FeatureCard icon="🔐" title="Multi-user, any profession"
-                desc="Full Supabase Auth. Each user's data is isolated via MD5-scoped job IDs — same URL creates separate rows per user without partitioned tables. Works for lawyers, nurses, engineers, designers, marketers — job vocab and scraper tags derived from your target roles."
-                tags={['supabase auth', 'any profession', 'row isolation']} />
+                desc="Full Supabase Auth with persistent sessions (refresh token stored in URL, survives browser refresh). Each user's data is isolated via MD5-scoped job IDs. Works for lawyers, nurses, engineers, designers — job vocab and scraper tags derived from your target roles."
+                tags={['supabase auth', 'persistent sessions', 'any profession']} />
             </div>
 
             <SectionLabel>Differentiators</SectionLabel>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
                 ['Skill-first scoring', 'Score prompt ranks skills before seniority. A 6-year engineer doesn\'t get filtered out of a "Senior" role — the match matters more than the title.'],
                 ['Full-description enrichment', 'LinkedIn search pages hide descriptions. Job Pal fetches the full text via the guest API before any scoring happens.'],
+                ['Parallel everything', 'Scrapers, scoring workers, and cover letter generators all run concurrently. A 20-job batch that took ~90s sequentially runs in ~30s with parallel workers.'],
                 ['CI on every push', 'GitHub Actions runs 5 health checks: syntax, scraper routing for 5 user archetypes, keyword drift, skill extraction, and config leak detection.'],
               ].map(([title, desc]) => (
                 <div key={title} className="bg-card border border-border rounded-xl p-5">
@@ -400,7 +410,7 @@ export default function Overview() {
               <StackRow layer="AI"        tech={['Claude Sonnet 4.6', 'Anthropic SDK']}         note="Scoring, cover letters, event relevance. Haiku for cheap pass." />
               <StackRow layer="Database"  tech={['Supabase', 'PostgreSQL', 'supabase-py 2.4']} note="job_applications, events, sessions, application_events." />
               <StackRow layer="Auth"      tech={['Supabase Auth', 'Email/OTP']}                 note="Magic link + password. Session restored on every load." />
-              <StackRow layer="Scraping"  tech={['requests', 'feedparser', 'BeautifulSoup']}    note="No headless browser. Pure HTTP + HTML/JSON/RSS parsing." />
+              <StackRow layer="Scraping"  tech={['requests', 'feedparser', 'BeautifulSoup', 'ddgs', 'imaplib']} note="No headless browser. Pure HTTP + HTML/JSON/RSS. ddgs = DuckDuckGo research. imaplib = Gmail IMAP." />
               <StackRow layer="Deploy"    tech={['Streamlit Cloud']}                            note="Free tier. Secrets in dashboard. Auto-deploy on push to main." />
             </div>
 
@@ -417,7 +427,7 @@ export default function Overview() {
             <SectionLabel>Infrastructure & tooling</SectionLabel>
             <div className="bg-card border border-border rounded-xl divide-y divide-border mb-8">
               <StackRow layer="CI/CD"      tech={['GitHub Actions']}               note="5 health checks per push. ~37s runtime. No secrets needed." />
-              <StackRow layer="Scan bot"   tech={['Claude Code Remote Agent']}     note="Weekly scheduled agent (Mon 9am CT) scanning for regressions." />
+              <StackRow layer="Timing"     tech={['perf_counter()', 'JSONB']}      note="Per-stage pipeline timing logged to pipeline_runs as timing_json JSONB." />
               <StackRow layer="MCP"        tech={['mcp_server.py']}               note="Exposes pipeline as MCP tool — Claude can orchestrate via chat." />
               <StackRow layer="Overview"   tech={['Next.js 14', 'Vercel', 'Recharts', 'Tailwind']} note="This page. Live Supabase pull, deployed on Vercel Edge." />
             </div>
@@ -447,19 +457,21 @@ export default function Overview() {
               <p className="font-mono text-xs text-muted">Every step between a job URL and the moment you decide to apply.</p>
             </div>
 
-            <SectionLabel>The 10-step job pipeline</SectionLabel>
+            <SectionLabel>The 12-step job pipeline</SectionLabel>
             <div className="space-y-2 mb-10">
               {[
-                { step: '01', label: 'Scrape',          desc: 'scrape_all() hits 5 sources. Role filter removes off-target titles using 60% keyword overlap. Runs in parallel.',         tag: 'scrapers/' },
-                { step: '02', label: 'Dedup',            desc: 'get_seen_ids() returns all job IDs for this user. New jobs only proceed. MD5-scoped IDs prevent cross-user collisions.', tag: 'tracker.py' },
-                { step: '03', label: 'Beta cap',         desc: 'If >50 new jobs, cheap-score all, keep top 50 by heuristic score. Prevents runaway Claude API costs during a big scrape.', tag: 'ui_v2.py' },
-                { step: '04', label: 'Enrich',           desc: 'LinkedIn jobs without descriptions are fetched via guest API — full description, salary, posted date. Already-enriched jobs skipped.', tag: 'fetcher.py' },
-                { step: '05', label: 'Pass 1 — Cheap',  desc: 'Skills extracted from your resume dynamically. Job skills matched. Title, role, location, salary checked. Score 1–10 in milliseconds.', tag: 'agent.py' },
-                { step: '06', label: 'Pass 2 — Claude', desc: 'Jobs scoring ≥5 on cheap sent to Claude Sonnet with your full resume + job description. Returns score 1–10, reasoning, and seniority match.', tag: 'agent.py' },
-                { step: '07', label: 'Cover letters',   desc: 'Jobs scoring 8+ get a cover letter from Claude Sonnet. System prompt (with resume) is cached — one cache hit covers the whole batch.', tag: 'agent.py' },
-                { step: '08', label: 'Upsert',           desc: 'upsert_jobs() saves all scored jobs to Supabase with on_conflict="id". Score, salary range, seniority, source all persisted.', tag: 'tracker.py' },
-                { step: '09', label: 'Personalise',     desc: 'get_personalization_context() reads your apply/skip history. Review queue re-ranked by effective score (base + personal bonuses).', tag: 'tracker.py' },
-                { step: '10', label: 'Review',           desc: 'Jobs scoring ≥7 appear in your queue sorted by effective score. Cover letters pre-loaded. One click to apply, skip, or save.', tag: 'ui_v2.py' },
+                { step: '01', label: 'Scrape',             desc: 'scrape_all() hits 5 sources in parallel via ThreadPoolExecutor (5 workers). Role filter removes off-target titles using 60% keyword overlap. All sources run concurrently — wall-clock time ≈ slowest single source.', tag: 'scrapers/' },
+                { step: '02', label: 'Dedup',              desc: 'get_seen_ids() returns all job IDs for this user. New jobs only proceed. MD5-scoped IDs prevent cross-user collisions. Title+company dedup in Python removes cross-source duplicates.', tag: 'tracker.py' },
+                { step: '03', label: 'Beta cap',           desc: 'If >50 new jobs, cheap-score all, keep top 50 by heuristic score. Prevents runaway Claude API costs during a big scrape.', tag: 'ui_v2.py' },
+                { step: '04', label: 'Enrich',             desc: 'LinkedIn jobs without descriptions are fetched via guest API — full description, salary, posted date. Runs in parallel with up to 6 concurrent fetches. Already-enriched jobs skipped.', tag: 'fetcher.py' },
+                { step: '05', label: 'Pass 1 — Cheap',    desc: 'Skills extracted from your resume dynamically. Job skills matched. Title, role, location, salary checked. Score 1–10 in milliseconds per job — no LLM call.', tag: 'agent.py' },
+                { step: '06', label: 'Pass 2 — Claude',   desc: 'Jobs scoring ≥5 sent to 8 parallel Claude Sonnet workers. Each call includes your full resume + job description. Returns score 1–10, one-sentence reasoning, and seniority match.', tag: 'agent.py' },
+                { step: '07', label: 'Cover letters',      desc: 'Jobs scoring 8+ get a cover letter from 3 parallel Claude workers. Resume is cached at the system prompt level — one cache hit covers the whole batch. Toggle to copy-ready plain text in the UI.', tag: 'agent.py' },
+                { step: '08', label: 'Upsert',             desc: 'upsert_jobs() saves all scored jobs to Supabase with on_conflict="id". Score, salary range, seniority, cover letter, source all persisted.', tag: 'tracker.py' },
+                { step: '09', label: 'Timing log',         desc: 'Every stage (scrape_s, enrich_s, pass1_s, pass2_s, cover_letters_s, save_s) is timed and written to pipeline_runs table as timing_json JSONB + total_seconds. Terminal shows a breakdown table.', tag: 'tracker.py' },
+                { step: '10', label: 'Personalise',        desc: 'get_personalization_context() reads your apply/skip history. Review queue re-ranked by effective score (base + personal bonuses). Target role keywords are protected from becoming negative signals.', tag: 'tracker.py' },
+                { step: '11', label: 'Review',             desc: 'Jobs scoring ≥7 appear in your queue sorted by effective score. Cover letters pre-loaded behind a toggle. One click to apply, skip, or save.', tag: 'ui_v2.py' },
+                { step: '12', label: 'Rejection scan',     desc: 'Optional: Gmail IMAP scan (opt-in per user, credentials never stored) searches 90 days for 17+ rejection phrases and matches against applied jobs by company. Matched jobs auto-update to "rejected".', tag: 'rejection_scanner.py' },
               ].map(({ step, label, desc, tag }) => (
                 <div key={step} className="flex gap-4 bg-card border border-border rounded-xl p-4">
                   <div className="font-mono text-[10px] text-accent w-6 shrink-0 pt-0.5">{step}</div>
@@ -488,7 +500,8 @@ export default function Overview() {
             <SectionLabel>What gets tracked per job</SectionLabel>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {['title', 'company', 'source', 'url', 'score (1–10)', 'reasoning', 'seniority', 'salary_range',
-                'cover_letter', 'status', 'applied_at', 'created_at', 'scored_by', 'cheap_score'].map(f => (
+                'cover_letter', 'status', 'applied_at', 'created_at', 'scored_by', 'cheap_score',
+                'timing_json', 'total_seconds'].map(f => (
                 <div key={f} className="bg-card border border-border rounded px-3 py-2 font-mono text-[10px] text-muted">{f}</div>
               ))}
             </div>
