@@ -53,12 +53,11 @@ function MetricCard({ label, value, sub, accent }: {
   )
 }
 
-function FeatureCard({ icon, title, desc, tags }: {
-  icon: string; title: string; desc: string; tags?: string[]
+function FeatureCard({ title, desc, tags }: {
+  title: string; desc: string; tags?: string[]
 }) {
   return (
     <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
-      <div className="text-2xl">{icon}</div>
       <div>
         <div className="font-serif text-base text-ink mb-1">{title}</div>
         <div className="font-mono text-[11px] text-muted leading-relaxed">{desc}</div>
@@ -349,31 +348,31 @@ export default function Overview() {
 
             <SectionLabel>Core modules</SectionLabel>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <FeatureCard icon="🔍" title="Multi-source scraper"
+              <FeatureCard title="Multi-source scraper"
                 desc="Pulls from LinkedIn, RemoteOK, Remotive, Jobicy, and We Work Remotely — all 5 in parallel via ThreadPoolExecutor (5 workers). LinkedIn descriptions fetched in full before scoring. Role filtering uses 60% keyword overlap — broad enough to catch variants, tight enough to cut noise."
                 tags={['5 job boards', 'parallel', 'real descriptions', 'role-aware']} />
-              <FeatureCard icon="🤖" title="Two-pass AI scoring"
+              <FeatureCard title="Two-pass AI scoring"
                 desc="Pass 1: cheap heuristic using skills extracted from your resume (not hardcoded vocab). Pass 2: 8 parallel Claude Sonnet workers score 1–10 against your full resume with reasoning. Only jobs passing the heuristic reach Claude — cuts API cost ~60% and wall-clock time by ~3x."
                 tags={['claude-sonnet-4-6', '8 workers', 'cost-efficient']} />
-              <FeatureCard icon="✍️" title="Tailored cover letters"
+              <FeatureCard title="Tailored cover letters"
                 desc="Generated for jobs scoring 8+ using 3 parallel Claude workers. Prompt enforces first-person, specific achievements with metrics, forward-looking close. Resume cached at the system prompt level via prompt caching — one cache hit covers an entire batch run."
                 tags={['8+ score only', '3 workers', 'prompt caching']} />
-              <FeatureCard icon="🧠" title="Personalization engine"
+              <FeatureCard title="Personalization engine"
                 desc="Learns from every apply and skip. Positive signals: company, source, and title tokens that predict your yes. Negative signals penalised only after 3+ occurrences. Target role keywords are protected — they can never become a negative signal."
                 tags={['apply/skip signals', 'company memory', 'token protection']} />
-              <FeatureCard icon="📬" title="Gmail rejection scanner"
+              <FeatureCard title="Gmail rejection scanner"
                 desc="Connects to your applying inbox via IMAP (Gmail App Password — never stored). Searches 90 days of email for 17+ rejection phrases, matches against applied jobs by sender domain, ATS routing, and body text. Confidence-scored 0–100%. Updates statuses automatically on opt-in."
                 tags={['IMAP', 'opt-in', 'ATS-aware', 'credentials in-memory']} />
-              <FeatureCard icon="🏢" title="Company research"
+              <FeatureCard title="Company research"
                 desc="DuckDuckGo search + About page scrape surfaces company mission, culture, and recent news for every top match. Injected into cover letter context and the AI assistant — so letters reference real details, not generic filler."
                 tags={['DuckDuckGo', 'BeautifulSoup', 'RAG context']} />
-              <FeatureCard icon="⏱️" title="Pipeline timing & monitoring"
+              <FeatureCard title="Pipeline timing & monitoring"
                 desc="Every pipeline stage is timed with perf_counter() and logged to Supabase as timing_json JSONB. Terminal breakdown table shows scrape / enrich / pass1 / pass2 / cover letters / save split. Historical data enables cost and latency optimization over time."
                 tags={['per-stage timing', 'Supabase JSONB', 'pipeline_runs table']} />
-              <FeatureCard icon="📅" title="Networking events"
+              <FeatureCard title="Networking events"
                 desc="Scrapes Meetup, Luma, and Eventbrite for local tech and professional events. Scores relevance against your resume across 18 domain categories. Virtual events filtered. Past events auto-pruned. Track interested and attending status per event."
                 tags={['meetup', 'luma', 'eventbrite', '18 domains']} />
-              <FeatureCard icon="🔐" title="Multi-user, any profession"
+              <FeatureCard title="Multi-user, any profession"
                 desc="Full Supabase Auth with persistent sessions (refresh token stored in URL, survives browser refresh). Each user's data is isolated via MD5-scoped job IDs. Works for lawyers, nurses, engineers, designers — job vocab and scraper tags derived from your target roles."
                 tags={['supabase auth', 'persistent sessions', 'any profession']} />
             </div>
